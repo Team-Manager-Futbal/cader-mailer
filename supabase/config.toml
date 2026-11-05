@@ -1,0 +1,20 @@
+# Supabase CLI configuration (only the parts this project needs).
+# `supabase link --project-ref <ref>` fills in the project reference.
+project_id = "cader-mailer"
+
+[functions.process-queue]
+# Authenticated by the x-cron-secret header instead of a user JWT.
+verify_jwt = false
+
+[functions.unsubscribe]
+# Public opt-out endpoint; needs to work from mail clients (RFC 8058) without any key.
+verify_jwt = false
+
+[functions.send-test]
+verify_jwt = true
+
+[functions.sender-admin]
+verify_jwt = true
+
+[functions.admin-users]
+verify_jwt = true

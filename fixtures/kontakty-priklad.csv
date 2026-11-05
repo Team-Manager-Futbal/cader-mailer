@@ -1,0 +1,6 @@
+email;meno;klub;pozicia
+sekretariat@fk-priklad.example.com;Ján Novák;FK Príklad;športový riaditeľ
+info@tj-vzor.example.com;Mária Kováčová;TJ Vzor;predsedníčka
+treneri@mfk-test.example.com;;MFK Test;tréner mládeže
+INFO@tj-vzor.example.com;duplicita;TJ Vzor;
+zla-adresa;;Neplatný riadok;
