@@ -58,7 +58,7 @@ export function Layout() {
       <a href="#main" className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-50 focus:rounded focus:bg-white focus:px-3 focus:py-2">
         Preskočiť na obsah
       </a>
-      <aside className="hidden w-60 shrink-0 flex-col border-r border-stone-200 bg-stone-100/60 px-3 py-5 lg:flex">
+      <aside className="hidden w-60 shrink-0 flex-col self-start border-r border-stone-200 bg-stone-100/60 px-3 py-5 lg:sticky lg:top-0 lg:flex lg:h-screen lg:overflow-y-auto">
         <Brand />
         <div className="mt-6 flex-1">{nav}</div>
         <UserBox name={profile?.full_name || profile?.email || ''} role={profile?.role} onSignOut={signOut} />
