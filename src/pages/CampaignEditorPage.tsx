@@ -252,7 +252,7 @@ export function CampaignEditorPage() {
                 htmlFor="body"
                 hint={
                   <>
-                    Polia: <code>{'{meno}'}</code>, <code>{'{klub}'}</code>, <code>{'{pozicia}'}</code>. Náhradná hodnota pri chýbajúcom údaji: <code>{'{meno|pán tréner}'}</code>. Pätička s identifikáciou Cader a odkazom na odhlásenie sa pridá automaticky.
+                    Polia: <code>{'{meno}'}</code>, <code>{'{klub}'}</code>, <code>{'{pozicia}'}</code>. Náhradná hodnota pri chýbajúcom údaji: <code>{'{meno|pán tréner}'}</code>. Podpis (pätička z Nastavení) sa pridá automaticky, do textu ho nepíšte.
                   </>
                 }
               >

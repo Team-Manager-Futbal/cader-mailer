@@ -53,6 +53,7 @@ SMTP príkazy s prihlasovacími údajmi sa nikdy nelogujú. Chyby obsahujú len 
 
 - Kontaktné údaje sú osobné údaje: ukladajú sa iba v Supabase (EU región odporúčaný) a vidí ich len vlastník kampane a admin.
 - Pri každej kampani sa zaznamená pôvod/právny základ, poznámka, kto a kedy potvrdil.
+- Odhlásenie: hlavička `List-Unsubscribe` (+ one-click) je v každej správe kampane. Viditeľný odkaz v texte je voliteľný (rozhodnutie vlastníka, november 2026). Odpovede typu „nemám záujem“ treba ručne pridať do Kontaktov.
 - Výmaz: admin v Kontaktoch → „Vymazať údaje (GDPR)“ odstráni všetky záznamy príjemcu. Adresa zostane na zozname odhlásených (oprávnený záujem nekontaktovať znova).
 - Aplikácia **nerieši** spracovanie bounce správ, doby uchovávania (treba ich určiť interne a mazať staré kampane) ani posúdenie zákonnosti konkrétneho zoznamu.
 - Žiadny tracking pixel ani sledovanie kliknutí.

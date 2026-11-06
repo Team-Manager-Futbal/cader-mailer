@@ -22,19 +22,22 @@ describe('template rendering', () => {
     expect(render('{klub}', { klub: '<b>{meno}</b>' }).text).toBe('<b>{meno}</b>')
   })
 
-  it('always appends the opt-out link and keeps subject single-line', () => {
+  it('adds the signature footer, no visible opt-out link unless the footer uses {odhlasenie}', () => {
     const url = unsubscribeUrl('https://x.github.io/cader-mailer', 'ab'.repeat(32))
     expect(url).toBe(`https://x.github.io/cader-mailer/#/odhlasenie?t=${'ab'.repeat(32)}`)
     const m = composeMessage({
       subject: 'Ponuka\npre {klub}',
-      body: 'Text',
-      footer: 'Cader s.r.o.',
+      body: 'Text\n\n',
+      footer: 'Jakub Kelemen\nCader',
       unsubscribeUrl: url,
       data: { klub: 'FK' },
     })
     expect(m.subject).toBe('Ponuka pre FK')
-    expect(m.body).toContain(url)
-    expect(m.body.startsWith('Text\n\nCader s.r.o.')).toBe(true)
+    expect(m.body).toBe('Text\n\nJakub Kelemen\nCader\n')
+    expect(m.body).not.toContain('odhlasenie')
+    const withLink = composeMessage({ subject: 's', body: 'Text', footer: 'Odhlásenie: {odhlasenie}', unsubscribeUrl: url, data: {} })
+    expect(withLink.body).toBe(`Text\n\nOdhlásenie: ${url}\n`)
+    expect(composeMessage({ subject: 's', body: 'Text', footer: '', unsubscribeUrl: url, data: {} }).body).toBe('Text\n')
   })
 })
 

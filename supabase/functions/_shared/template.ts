@@ -57,21 +57,22 @@ export interface ComposedMessage {
   unknown: string[]
 }
 
-/** Full message as the recipient will see it: body + identification/opt-out footer. */
+/**
+ * Full message as the recipient will see it: body + signature footer.
+ * The visible opt-out link appears only where the footer uses {odhlasenie}; every campaign
+ * message still carries the List-Unsubscribe / List-Unsubscribe-Post headers (see mime.ts).
+ */
 export function composeMessage({ subject, body, footer, unsubscribeUrl, data }: ComposeInput): ComposedMessage {
   const s = render(subject, data)
   const b = render(body, data)
   const f = render(footer, data, { odhlasenie: unsubscribeUrl })
-  let footerText = f.text.trim()
-  // The opt-out link must always be present, even if an admin removed {odhlasenie} from the footer.
-  if (!footerText.includes(unsubscribeUrl)) {
-    footerText = `${footerText}\n\nOdhlásenie z ďalších správ: ${unsubscribeUrl}`.trim()
-  }
+  const footerText = f.text.trim()
   const unique = <T,>(xs: T[]) => [...new Set(xs)]
+  const text = b.text.replace(/\s+$/, '')
   return {
     // Subjects are single-line.
     subject: s.text.replace(/[\r\n]+/g, ' ').trim(),
-    body: `${b.text.replace(/\s+$/, '')}\n\n${footerText}\n`,
+    body: footerText ? `${text}\n\n${footerText}\n` : `${text}\n`,
     missing: unique([...s.missing, ...b.missing, ...f.missing]),
     unknown: unique([...s.unknown, ...b.unknown, ...f.unknown]),
   }

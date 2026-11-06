@@ -102,7 +102,7 @@ export function SettingsPage() {
               <Input id="maxrate" type="number" min={1} max={30} value={form.max_member_rate_per_minute} onChange={(e) => setForm({ ...form, max_member_rate_per_minute: Number(e.target.value) })} />
             </Field>
             <div className="md:col-span-2">
-              <Field label="Pätička každej správy" htmlFor="footer" hint="Musí identifikovať odosielateľa. {odhlasenie} sa nahradí odkazom na odhlásenie (ak ho vynecháte, odkaz sa pridá aj tak).">
+              <Field label="Pätička každej správy" htmlFor="footer" hint="Podpis pridaný na koniec každej správy (meno, firma, kontakt). Voliteľne {odhlasenie} vloží viditeľný odkaz na odhlásenie. Neviditeľná hlavička List-Unsubscribe sa pridáva vždy.">
                 <Textarea id="footer" rows={4} value={form.footer_text} onChange={(e) => setForm({ ...form, footer_text: e.target.value })} />
               </Field>
             </div>

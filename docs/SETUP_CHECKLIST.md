@@ -103,7 +103,7 @@ dig +short TXT _dmarc.caderapp.com     # DMARC: začnite s p=none a rua=mailto:<
 
 ## H. Prvé odoslanie
 
-- [ ] **H1. Test na vlastnú adresu:** Nová kampaň → text s `{meno}` a `{klub}` → príjemca = vaša adresa → „Poslať test…“. Skontrolujte: príchod, odosielateľa, Reply-To, slovenské znaky v predmete aj texte, pätičku a odkaz na odhlásenie (na teste je zámerne neplatný).
+- [ ] **H1. Test na vlastnú adresu:** Nová kampaň → text s `{meno}` a `{klub}` → príjemca = vaša adresa → „Poslať test…“. Skontrolujte: príchod, odosielateľa, Reply-To, slovenské znaky v predmete aj texte a podpis (pätičku).
 - [ ] **H2. Pilot 2–5 vlastných/schválených adries:** Nastavenia → zapnite odosielanie. Vytvorte kampaň, naplánujte ju na čas o ~5 minút (napr. 08:00, ak je ráno) a potvrďte. Zatvorte prehliadač.
   - Overenie: po naplánovanom čase je kampaň „Odosiela sa“ a potom „Dokončená“, aj keď bol prehliadač zatvorený. Každý dostal **samostatný** e-mail (len svoj `To`, žiadne `Cc`/`Bcc`). V Odoslaných Seznamu je toľko správ, koľko príjemcov.
   - Overenie času: `select scheduled_at, started_at from campaigns order by created_at desc limit 1;` vráti UTC. 08:00 Bratislava = 07:00 UTC v zime, 06:00 UTC v lete.
