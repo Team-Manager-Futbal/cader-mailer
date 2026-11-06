@@ -63,29 +63,51 @@ function firstRowIsData(row: string[]): boolean {
   return row.some((c) => isValidEmail(c))
 }
 
+// Without a header row, columns other than the e-mail column are read in this order.
+const HEADERLESS_ORDER: TargetField[] = ['meno', 'klub', 'pozicia']
+
 function tableFromMatrix(matrix: string[][]): Table {
   const rows = matrix.map((r) => r.map((c) => (c ?? '').toString().trim())).filter((r) => r.some((c) => c !== ''))
   if (rows.length === 0) return { headers: [], rows: [] }
   if (firstRowIsData(rows[0])) {
     const width = Math.max(...rows.map((r) => r.length))
-    const headers = Array.from({ length: width }, (_, i) => `Stĺpec ${i + 1}`)
-    // Use the e-mail-looking column as e-mail.
     const emailCol = rows[0].findIndex((c) => isValidEmail(c))
-    if (emailCol >= 0) headers[emailCol] = 'email'
+    let next = 0
+    const headers = Array.from({ length: width }, (_, i) =>
+      i === emailCol ? 'email' : (HEADERLESS_ORDER[next++] ?? `Stĺpec ${i + 1}`),
+    )
     return { headers, rows }
   }
   return { headers: rows[0], rows: rows.slice(1) }
 }
 
+const EMAIL_IN_TEXT = /[^\s<>,;"']+@[^\s<>,;"']+/g
+
 /**
- * Pasted text. Tab-separated text (copied from Excel) is treated as a table; otherwise it is
- * a list of addresses separated by newlines, commas or semicolons ("Meno <email>" supported).
+ * Pasted text, three accepted shapes:
+ *  1. Table copied from Excel/Sheets (tab-separated), with or without a header row.
+ *  2. One contact per line with fields separated by ";" or ",":
+ *       email; meno; klub; pozícia   (header row optional; without it this order is assumed)
+ *  3. A plain list of addresses separated by newlines, commas or semicolons ("Meno <email>" supported).
  */
 export function parsePasted(text: string): Table {
   const trimmed = text.trim()
   if (!trimmed) return { headers: [], rows: [] }
   if (trimmed.includes('\t')) {
     return tableFromMatrix(trimmed.split(/\r?\n/).map((l) => l.split('\t')))
+  }
+  const lines = trimmed.split(/\r?\n/).map((l) => l.trim()).filter(Boolean)
+  const delimiter = lines.some((l) => l.includes(';')) ? ';' : ','
+  // A line is a "record" if it holds at most one address plus other non-empty fields.
+  const isRecordLine = (l: string) => {
+    const cells = l.split(delimiter).map((c) => c.trim())
+    return cells.length > 1 && cells.some((c) => c && !isValidEmail(c) && !/<[^<>]+@[^<>]+>/.test(c))
+  }
+  const looksLikeTable =
+    lines.every((l) => (l.match(EMAIL_IN_TEXT)?.length ?? 0) <= 1) && lines.some(isRecordLine)
+  if (looksLikeTable) {
+    const res = Papa.parse<string[]>(lines.join('\n'), { delimiter, skipEmptyLines: 'greedy' })
+    return tableFromMatrix(res.data)
   }
   const rows: string[][] = []
   for (const token of trimmed.split(/[\n\r,;]+/)) {

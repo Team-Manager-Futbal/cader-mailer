@@ -2,7 +2,7 @@
 
 Každý krok má **Overenie**. Nepokračujte, kým overenie neprejde. Heslá a kľúče nikdy nevkladajte do chatu, issue, commitu ani do `.env` súborov v repozitári.
 
-Nižšie sa používa adresa `https://mcjac0b.github.io/cader-mailer/`. Ak sa repozitár volá inak, upravte ju.
+Nižšie sa používa adresa `https://team-manager-futbal.github.io/cader-mailer/`. Ak sa repozitár volá inak, upravte ju.
 
 ---
 
@@ -31,8 +31,8 @@ Nižšie sa používa adresa `https://mcjac0b.github.io/cader-mailer/`. Ak sa re
 
 - [ ] **C1.** Authentication → Sign In / Providers → **Allow new users to sign up = OFF** (iba pozvánky).
 - [ ] **C2.** Authentication → URL Configuration:
-  - Site URL = `https://mcjac0b.github.io/cader-mailer/`
-  - Redirect URLs = `https://mcjac0b.github.io/cader-mailer/` (pre lokálny vývoj aj `http://localhost:5173/cader-mailer/`)
+  - Site URL = `https://team-manager-futbal.github.io/cader-mailer/`
+  - Redirect URLs = `https://team-manager-futbal.github.io/cader-mailer/` (pre lokálny vývoj aj `http://localhost:5173/cader-mailer/`)
 - [ ] **C3. SMTP pre Auth e-maily** (pozvánky, obnova hesla): Authentication → Emails → SMTP Settings. Vstavaný e-mail Supabase posiela len na adresy členov tímu projektu a má veľmi nízky limit. Môžete použiť Seznam (`smtp.seznam.cz`, 465, celá adresa ako používateľ). Je to oddelené od odosielania kampaní.
   - Overenie: v kroku F2 príde pozvánka na adresu mimo Supabase tímu.
 - [ ] **C4. Prvý admin:** Authentication → Users → Add user → Create new user (e-mail + heslo, Auto Confirm). Potom v SQL Editore:
@@ -48,8 +48,8 @@ Nižšie sa používa adresa `https://mcjac0b.github.io/cader-mailer/`. Ak sa re
   npx supabase secrets set \
     SENDER_SECRET_KEY="$(openssl rand -base64 32)" \
     CRON_SECRET="$(openssl rand -hex 32 | tee /dev/tty)" \
-    SITE_URL="https://mcjac0b.github.io/cader-mailer/" \
-    ALLOWED_ORIGINS="https://mcjac0b.github.io"
+    SITE_URL="https://team-manager-futbal.github.io/cader-mailer/" \
+    ALLOWED_ORIGINS="https://team-manager-futbal.github.io"
   ```
   `CRON_SECRET` sa vypíše raz (kvôli `tee`), budete ho potrebovať v E2. **`SENDER_SECRET_KEY` neskôr nemeňte.** Uložené SMTP heslá by sa stali nečitateľnými (pozri OPERATIONS.md, rotácia).
   - Overenie: `npx supabase secrets list` ukazuje všetky štyri mená (hodnoty sú skryté).
@@ -75,7 +75,7 @@ Nižšie sa používa adresa `https://mcjac0b.github.io/cader-mailer/`. Ak sa re
 
 ## F. Aplikácia: nastavenia, tím, odosielateľ
 
-- [ ] **F1.** Nastavenia → **Verejná adresa aplikácie** = `https://mcjac0b.github.io/cader-mailer/` (tlačidlo „Použiť aktuálnu“). Skontrolujte pätičku (identifikácia Cader + `{odhlasenie}`). Odosielanie zatiaľ nechajte **VYPNUTÉ**.
+- [ ] **F1.** Nastavenia → **Verejná adresa aplikácie** = `https://team-manager-futbal.github.io/cader-mailer/` (tlačidlo „Použiť aktuálnu“). Skontrolujte pätičku (identifikácia Cader + `{odhlasenie}`). Odosielanie zatiaľ nechajte **VYPNUTÉ**.
 - [ ] **F2.** Používatelia → pozvite člena tímu.
   - Overenie: pozvánka príde, člen si nastaví heslo a prihlási sa. Nevidí sekciu Administrácia ani kampane iných.
 - [ ] **F3.** Odosielatelia → Pridať: `jakub.kelemen@caderapp.com`, poskytovateľ Seznam (465, SSL/TLS), používateľ = celá adresa. Limity nechajte 2/min, 60/h, 200/24 h.

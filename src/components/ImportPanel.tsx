@@ -64,8 +64,23 @@ export function ImportPanel({ existing, onImport }: { existing: string[]; onImpo
   return (
     <div className="space-y-4">
       <div className="grid gap-4 md:grid-cols-2">
-        <Field label="Vložiť adresy" htmlFor="paste" hint="Oddeľte novým riadkom, čiarkou alebo bodkočiarkou. Tabuľku z Excelu môžete vložiť aj s hlavičkou.">
-          <Textarea id="paste" rows={5} value={text} onChange={(e) => setText(e.target.value)} placeholder={'sekretariat@fkpriklad.sk\nJán Novák <jan@example.com>'} />
+        <Field
+          label="Vložiť kontakty"
+          htmlFor="paste"
+          hint={
+            <>
+              Jeden kontakt na riadok v poradí <strong>email; meno; klub; pozícia</strong> (stačí aj len e-mail, ostatné môžete vynechať). Funguje aj prvý riadok s hlavičkou alebo tabuľka
+              skopírovaná z Excelu.
+            </>
+          }
+        >
+          <Textarea
+            id="paste"
+            rows={5}
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            placeholder={'sekretariat@fkpriklad.sk; Ján Novák; FK Príklad; športový riaditeľ\ninfo@tjvzor.sk; Mária Kováčová; TJ Vzor'}
+          />
         </Field>
         <div className="space-y-2">
           <p className="text-sm font-medium text-stone-800">alebo nahrať súbor</p>
@@ -77,7 +92,7 @@ export function ImportPanel({ existing, onImport }: { existing: string[]; onImpo
         </div>
       </div>
       <Button onClick={() => load(parsePasted(text))} disabled={!text.trim()}>
-        Skontrolovať vložené adresy
+        Skontrolovať vložené kontakty
       </Button>
 
       {error && <Alert tone="error">{error}</Alert>}

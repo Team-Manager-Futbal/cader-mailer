@@ -52,6 +52,34 @@ describe('import', () => {
     ])
   })
 
+  it('reads one contact per line as "email; meno; klub; pozícia" without Excel', () => {
+    const t = parsePasted('jan@example.com; Ján Novák; FK Senec; tréner\nmaria@example.com; Mária; TJ Vzor\n')
+    expect(t.headers).toEqual(['email', 'meno', 'klub', 'pozicia'])
+    expect(guessMapping(t.headers)).toEqual({ email: 0, meno: 1, klub: 2, pozicia: 3 })
+    expect(buildPreview(t, guessMapping(t.headers)).valid).toEqual([
+      { email: 'jan@example.com', meno: 'Ján Novák', klub: 'FK Senec', pozicia: 'tréner' },
+      { email: 'maria@example.com', meno: 'Mária', klub: 'TJ Vzor', pozicia: '' },
+    ])
+  })
+
+  it('accepts a header row and commas in pasted records', () => {
+    const t = parsePasted('klub, email, meno\nFK Senec, jan@example.com, Ján\n"MFK Ružomberok, a.s.", info@example.com, Peter')
+    const p = buildPreview(t, guessMapping(t.headers))
+    expect(p.valid).toEqual([
+      { email: 'jan@example.com', meno: 'Ján', klub: 'FK Senec', pozicia: '' },
+      { email: 'info@example.com', meno: 'Peter', klub: 'MFK Ružomberok, a.s.', pozicia: '' },
+    ])
+  })
+
+  it('still treats comma/semicolon separated addresses on one line as a plain list', () => {
+    expect(parsePasted('a@example.com; b@example.com, c@example.com').rows.map((r) => r[0])).toEqual([
+      'a@example.com',
+      'b@example.com',
+      'c@example.com',
+    ])
+    expect(parsePasted('a@example.com\nb@example.com').rows).toHaveLength(2)
+  })
+
   it('maps Slovak and English headers case/diacritics-insensitively', () => {
     expect(normalizeHeader('  E-mailová   Adresa ')).toBe('e-mailova adresa')
     expect(guessMapping(['Názov klubu', 'Kontaktná osoba', 'E-mail', 'Funkcia'])).toEqual({
@@ -68,7 +96,7 @@ describe('import', () => {
     expect(t.headers).toEqual(['email', 'meno', 'klub'])
     expect(t.rows).toEqual([['A@example.com', 'Ján', 'FK Senec']])
     const h = parseCsv('FK Senec,a@example.com\nFK Pezinok,b@example.com')
-    expect(h.headers[1]).toBe('email')
+    expect(h.headers).toEqual(['meno', 'email'])
     expect(h.rows).toHaveLength(2)
   })
 
