@@ -118,3 +118,15 @@ describe('import', () => {
     expect(csvCell('FK Senec')).toBe('FK Senec')
   })
 })
+
+describe('CRM next-step dates', () => {
+  it('classifies due dates relative to today', async () => {
+    const { dueState, formatDate } = await import('./crm')
+    expect(dueState(null, '2026-11-12')).toBeNull()
+    expect(dueState('2026-11-11', '2026-11-12')).toBe('overdue')
+    expect(dueState('2026-11-12', '2026-11-12')).toBe('today')
+    expect(dueState('2026-11-19', '2026-11-12')).toBe('soon')
+    expect(dueState('2026-11-20', '2026-11-12')).toBe('later')
+    expect(formatDate('2026-11-05')).toBe('5. 11. 2026')
+  })
+})

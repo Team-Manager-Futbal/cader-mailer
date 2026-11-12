@@ -5,10 +5,11 @@ import { cx } from './ui'
 
 const NAV = [
   { to: '/', label: 'Prehľad', end: true },
+  { to: '/kluby', label: 'Kluby a partneri' },
   { to: '/kampane', label: 'Kampane', end: true },
   { to: '/kampane/nova', label: 'Nová kampaň' },
   { to: '/sablony', label: 'Šablóny' },
-  { to: '/kontakty', label: 'Kontakty' },
+  { to: '/kontakty', label: 'Odhlásení' },
 ]
 const ADMIN_NAV = [
   { to: '/pouzivatelia', label: 'Používatelia' },

@@ -54,7 +54,7 @@ afterAll(async () => {
 beforeEach(async () => {
   await db.sql(`truncate public.audit_logs, public.send_attempts, public.campaign_recipients, public.campaigns,
     public.templates, public.sender_permissions, public.sender_secrets, public.sender_accounts,
-    public.suppression_list, auth.users cascade`)
+    public.suppression_list, public.account_activities, public.account_contacts, public.accounts, auth.users cascade`)
   await db.sql(`update public.app_settings set sending_enabled = true, max_member_rate_per_minute = 2`)
   admin = await db.createUser('admin@example.com', { role: 'admin' })
   alice = await db.createUser('alice@example.com')
@@ -406,5 +406,83 @@ describe('audit', () => {
         { actor_id: admin, action: 'app_settings.update' },
       ]),
     )
+  })
+})
+
+describe('CRM', () => {
+  async function sendTo(owner: string, contacts: { email: string; meno?: string; klub?: string }[], name = 'Kampaň') {
+    const c = await newCampaign(owner, sender, name)
+    await db.as(owner, `select public.campaign_set_recipients($1, $2::jsonb)`, [c, JSON.stringify(contacts)])
+    await db.sql(`update public.sender_accounts set rate_per_minute = 50 where id = $1`, [sender])
+    await confirm(owner, c, 2)
+    for (let i = 0; i < 5; i++) {
+      for (const r of await claim(50)) await finish(r, 'accepted_by_smtp')
+      await db.sql(`update public.send_attempts set created_at = created_at - interval '2 minutes'`)
+    }
+    return c
+  }
+
+  it('creates the club, contact and history from e-mails accepted by SMTP', async () => {
+    await sendTo(alice, [
+      { email: 'jan@fk.example.com', meno: 'pán Novák', klub: 'FK Príklad' },
+      { email: 'info@fk.example.com', klub: 'fk príklad ' },
+    ])
+    await sendTo(bob, [{ email: 'JAN@fk.example.com', klub: 'FK Príklad' }], 'Follow-up')
+    // One club regardless of letter case; the first accepted e-mail decides the spelling.
+    const accounts = await db.as(alice, `select lower(name) as name, stage, type from public.accounts`)
+    expect(accounts).toEqual([{ name: 'fk príklad', stage: 'contacted', type: 'club' }])
+    const contacts = await db.as(bob, `select email_normalized, full_name from public.account_contacts order by 1`)
+    expect(contacts).toEqual([
+      { email_normalized: 'info@fk.example.com', full_name: '' },
+      { email_normalized: 'jan@fk.example.com', full_name: 'pán Novák' },
+    ])
+    const history = await db.as(alice, `select kind, body from public.account_activities order by id`)
+    expect(history.filter((h) => h.kind === 'campaign').map((h) => h.body)).toEqual([
+      'E-mail z kampane „Kampaň“',
+      'E-mail z kampane „Kampaň“',
+      'E-mail z kampane „Follow-up“',
+    ])
+  })
+
+  it('records stage changes with the author and keeps manual work out of system entries', async () => {
+    await sendTo(alice, [{ email: 'a@club.example.com', klub: 'TJ Test' }])
+    const [{ id }] = await db.as<{ id: string }>(alice, `select id from public.accounts`)
+    await db.as(bob, `update public.accounts set stage = 'meeting', next_action_on = '2026-11-20', next_action_note = 'Stretnutie v klube' where id = $1`, [id])
+    const [change] = await db.as(alice, `select author_id, meta from public.account_activities where kind = 'stage_change'`)
+    expect(change).toEqual({ author_id: bob, meta: { from: 'contacted', to: 'meeting' } })
+    await db.as(alice, `insert into public.account_activities (account_id, author_id, kind, body) values ($1, $2, 'call', 'Volal som')`, [id, alice])
+    await expect(
+      db.as(alice, `insert into public.account_activities (account_id, author_id, kind, body) values ($1, $2, 'note', 'x')`, [id, bob]),
+    ).rejects.toThrow(/row-level security/)
+    await expect(
+      db.as(alice, `insert into public.account_activities (account_id, author_id, kind) values ($1, $2, 'stage_change')`, [id, alice]),
+    ).rejects.toThrow(/row-level security/)
+    // Bob cannot delete Alice's note; system entries cannot be deleted by anyone through the API.
+    expect(await db.as(bob, `delete from public.account_activities where kind = 'call' returning id`)).toHaveLength(0)
+    expect(await db.as(admin, `delete from public.account_activities where kind = 'campaign' returning id`)).toHaveLength(0)
+  })
+
+  it('is shared by active members only; accounts can be deleted only by an admin', async () => {
+    await db.as(alice, `insert into public.accounts (type, name, created_by) values ('partner', 'Sponzor s.r.o.', $1)`, [alice])
+    expect(await db.as(bob, `select name from public.accounts`)).toEqual([{ name: 'Sponzor s.r.o.' }])
+    expect(await db.as(inactive, `select name from public.accounts`)).toHaveLength(0)
+    await expect(db.as('anon', `select * from public.accounts`)).rejects.toThrow(/permission denied/)
+    expect(await db.as(alice, `delete from public.accounts returning id`)).toHaveLength(0)
+    expect(await db.as(admin, `delete from public.accounts returning id`)).toHaveLength(1)
+  })
+
+  it('a CRM failure never blocks recording the SMTP result', async () => {
+    const c = await newCampaign(alice)
+    await db.as(alice, `select public.campaign_set_recipients($1, $2::jsonb)`, [c, JSON.stringify([{ email: 'x@club.example.com', klub: 'FK X' }])])
+    await confirm(alice, c)
+    await db.sql(`alter table public.account_activities add constraint crm_broken check (false) not valid`)
+    try {
+      const [r] = await claim()
+      expect((await finish(r, 'accepted_by_smtp'))[0].finish_attempt).toBe(true)
+      const [row] = await db.sql(`select state from public.campaign_recipients`)
+      expect(row.state).toBe('accepted_by_smtp')
+    } finally {
+      await db.sql(`alter table public.account_activities drop constraint crm_broken`)
+    }
   })
 })

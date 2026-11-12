@@ -73,7 +73,7 @@ export function ContactsPage() {
 
   return (
     <>
-      <PageHeader title="Kontakty" description="Zoznam odhlásených platí pre celý tím a pre všetky kampane. Kontroluje sa pri importe aj tesne pred každým odoslaním." />
+      <PageHeader title="Odhlásení" description="Zoznam odhlásených platí pre celý tím a pre všetky kampane. Kontroluje sa pri importe aj tesne pred každým odoslaním." />
       <div className="space-y-6">
         {msg && <Alert tone={msg.tone}>{msg.text}</Alert>}
         <Card title="Pridať na zoznam odhlásených">

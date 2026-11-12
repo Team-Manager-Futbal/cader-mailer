@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom'
 import { CampaignTable } from '../components/CampaignTable'
+import { FollowUps } from '../components/FollowUps'
 import { Alert, Button, Card, Loading, PageHeader, Stat } from '../components/ui'
 import { useAuth } from '../lib/auth'
 import { loadOverview, loadSettings, useLoad } from '../lib/data'
@@ -36,6 +37,10 @@ export function DashboardPage() {
           </Alert>
         </div>
       )}
+      <div className="mb-8">
+        <FollowUps />
+      </div>
+      <h2 className="mb-3 text-lg font-semibold">Kampane</h2>
       {overview.error && <Alert tone="error">{overview.error}</Alert>}
       {!overview.data && overview.loading && <Loading />}
       {overview.data && (

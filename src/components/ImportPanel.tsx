@@ -1,7 +1,13 @@
 import { useMemo, useState } from 'react'
+import { DO_NOT_MAIL_STAGES, type DealStage, STAGE_LABELS } from '../lib/crm'
 import { buildPreview, FIELD_LABELS, guessMapping, parseFile, parsePasted, type ContactRow, type Table, TARGET_FIELDS, type TargetField } from '../lib/import'
 import { supabase } from '../lib/supabase'
-import { Alert, Button, Field, Select, Textarea } from './ui'
+import { Alert, Button, Checkbox, Field, Select, Textarea } from './ui'
+
+interface CrmHit {
+  account: string
+  stage: DealStage
+}
 
 /** Paste / CSV / XLSX import with column mapping and a validation summary. */
 export function ImportPanel({ existing, onImport }: { existing: string[]; onImport: (rows: ContactRow[]) => Promise<void> }) {
@@ -9,6 +15,10 @@ export function ImportPanel({ existing, onImport }: { existing: string[]; onImpo
   const [table, setTable] = useState<Table | null>(null)
   const [mapping, setMapping] = useState<Record<TargetField, number>>({ email: -1, meno: -1, klub: -1, pozicia: -1 })
   const [suppressed, setSuppressed] = useState<Set<string>>(new Set())
+  // Clubs that are already further in the sales pipeline, keyed by e-mail and by club name.
+  const [crmByEmail, setCrmByEmail] = useState<Map<string, CrmHit>>(new Map())
+  const [crmByClub, setCrmByClub] = useState<Map<string, CrmHit>>(new Map())
+  const [includeCrm, setIncludeCrm] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
 
@@ -34,9 +44,35 @@ export function ImportPanel({ existing, onImport }: { existing: string[]; onImpo
       for (const r of data ?? []) found.add(r.email_normalized)
     }
     setSuppressed(found)
+
+    const byEmail = new Map<string, CrmHit>()
+    for (let i = 0; i < emails.length; i += 200) {
+      const { data } = await supabase
+        .from('account_contacts')
+        .select('email_normalized, accounts(name, stage)')
+        .in('email_normalized', emails.slice(i, i + 200))
+      for (const r of (data ?? []) as unknown as { email_normalized: string; accounts: { name: string; stage: DealStage } | null }[]) {
+        if (r.accounts && DO_NOT_MAIL_STAGES.includes(r.accounts.stage)) byEmail.set(r.email_normalized, { account: r.accounts.name, stage: r.accounts.stage })
+      }
+    }
+    const byClub = new Map<string, CrmHit>()
+    const clubs = [...new Set(t.rows.map((r) => (m.klub >= 0 ? r[m.klub] : '')?.trim().toLowerCase()).filter(Boolean))]
+    for (let i = 0; i < clubs.length; i += 200) {
+      const { data } = await supabase.from('accounts').select('name, name_key, stage').in('stage', DO_NOT_MAIL_STAGES).in('name_key', clubs.slice(i, i + 200))
+      for (const r of (data ?? []) as { name: string; name_key: string; stage: DealStage }[]) byClub.set(r.name_key, { account: r.name, stage: r.stage })
+    }
+    setCrmByEmail(byEmail)
+    setCrmByClub(byClub)
+    setIncludeCrm(false)
   }
 
   const preview = useMemo(() => (table ? buildPreview(table, mapping, existing, suppressed) : null), [table, mapping, existing, suppressed])
+  const crmHit = (r: ContactRow) => crmByEmail.get(r.email) ?? crmByClub.get(r.klub.trim().toLowerCase())
+  const inPipeline = useMemo(() => (preview ? preview.valid.filter((r) => crmHit(r)) : []), [preview, crmByEmail, crmByClub]) // eslint-disable-line react-hooks/exhaustive-deps
+  const toImport = useMemo(
+    () => (preview ? (includeCrm ? preview.valid : preview.valid.filter((r) => !inPipeline.includes(r))) : []),
+    [preview, includeCrm, inPipeline],
+  )
 
   async function onFile(file: File | undefined) {
     if (!file) return
@@ -51,7 +87,7 @@ export function ImportPanel({ existing, onImport }: { existing: string[]; onImpo
     if (!preview) return
     setBusy(true)
     try {
-      await onImport(preview.valid)
+      await onImport(toImport)
       setTable(null)
       setText('')
     } catch (e) {
@@ -126,7 +162,31 @@ export function ImportPanel({ existing, onImport }: { existing: string[]; onImpo
             <li className={preview.suppressed.length ? 'text-amber-800' : ''}>
               <strong className="tabular-nums">{preview.suppressed.length}</strong> odhlásených (nebudú pridané)
             </li>
+            {inPipeline.length > 0 && (
+              <li className="text-violet-800">
+                <strong className="tabular-nums">{inPipeline.length}</strong> v rozpracovanom obchode
+              </li>
+            )}
           </ul>
+          {inPipeline.length > 0 && (
+            <div className="space-y-2 rounded-md bg-violet-50 p-3 text-sm ring-1 ring-violet-200">
+              <p>
+                Tieto kontakty patria klubom, ktoré už odpovedali, majú stretnutie, ponuku, sú klientom alebo nemajú záujem. Hromadný e-mail by im nemal prísť, preto sa predvolene
+                nepridajú:
+              </p>
+              <ul className="max-h-32 overflow-auto text-xs">
+                {inPipeline.map((r) => {
+                  const h = crmHit(r)!
+                  return (
+                    <li key={r.email}>
+                      {r.email} – {h.account} ({STAGE_LABELS[h.stage]})
+                    </li>
+                  )
+                })}
+              </ul>
+              <Checkbox checked={includeCrm} onChange={(e) => setIncludeCrm(e.target.checked)} label="Aj tak ich pridať do kampane" />
+            </div>
+          )}
           {preview.invalid.length > 0 && (
             <details className="text-sm">
               <summary className="cursor-pointer text-red-700">Zobraziť neplatné riadky</summary>
@@ -139,7 +199,7 @@ export function ImportPanel({ existing, onImport }: { existing: string[]; onImpo
               </ul>
             </details>
           )}
-          {preview.valid.length > 0 && (
+          {toImport.length > 0 && (
             <div className="max-h-56 overflow-auto rounded bg-white ring-1 ring-stone-200">
               <table className="min-w-full text-xs">
                 <thead className="sticky top-0 bg-stone-100">
@@ -152,7 +212,7 @@ export function ImportPanel({ existing, onImport }: { existing: string[]; onImpo
                   </tr>
                 </thead>
                 <tbody>
-                  {preview.valid.slice(0, 50).map((r) => (
+                  {toImport.slice(0, 50).map((r) => (
                     <tr key={r.email} className="border-t border-stone-100">
                       <td className="px-2 py-1">{r.email}</td>
                       <td className="px-2 py-1">{r.meno}</td>
@@ -162,12 +222,12 @@ export function ImportPanel({ existing, onImport }: { existing: string[]; onImpo
                   ))}
                 </tbody>
               </table>
-              {preview.valid.length > 50 && <p className="px-2 py-1 text-xs text-stone-500">… a ďalších {preview.valid.length - 50}</p>}
+              {toImport.length > 50 && <p className="px-2 py-1 text-xs text-stone-500">… a ďalších {toImport.length - 50}</p>}
             </div>
           )}
           <div className="flex gap-2">
-            <Button variant="primary" onClick={confirm} busy={busy} disabled={mapping.email < 0 || preview.valid.length === 0}>
-              Pridať {preview.valid.length} príjemcov
+            <Button variant="primary" onClick={confirm} busy={busy} disabled={mapping.email < 0 || toImport.length === 0}>
+              Pridať {toImport.length} príjemcov
             </Button>
             <Button variant="ghost" onClick={() => setTable(null)}>
               Zrušiť

@@ -9,6 +9,8 @@ import { CampaignDetailPage } from './pages/CampaignDetailPage'
 import { CampaignEditorPage } from './pages/CampaignEditorPage'
 import { CampaignsPage } from './pages/CampaignsPage'
 import { ContactsPage } from './pages/ContactsPage'
+import { CrmDetailPage } from './pages/CrmDetailPage'
+import { CrmListPage } from './pages/CrmListPage'
 import { DashboardPage } from './pages/DashboardPage'
 import { LoginPage } from './pages/LoginPage'
 import { SendersPage } from './pages/SendersPage'
@@ -49,6 +51,8 @@ const router = createHashRouter([
     ),
     children: [
       { index: true, element: <DashboardPage /> },
+      { path: 'kluby', element: <CrmListPage /> },
+      { path: 'kluby/:id', element: <CrmDetailPage /> },
       { path: 'kampane', element: <CampaignsPage /> },
       { path: 'kampane/nova', element: <CampaignEditorPage /> },
       { path: 'kampane/:id', element: <CampaignDetailPage /> },
