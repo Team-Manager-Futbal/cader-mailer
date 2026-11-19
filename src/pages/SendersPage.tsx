@@ -33,7 +33,20 @@ export function SendersPage() {
     if (!form) return
     setBusy('save')
     const { id, ...rest } = form
-    const payload = { ...rest, reply_to: rest.reply_to?.trim() || null, smtp_username: rest.smtp_username.trim() || rest.email.trim(), email: rest.email.trim().toLowerCase() }
+    // Only the editable columns: the edit form starts from the full row, and the DB grants UPDATE on these columns only.
+    const payload = {
+      display_name: rest.display_name,
+      provider: rest.provider,
+      smtp_host: rest.smtp_host,
+      smtp_port: rest.smtp_port,
+      smtp_tls: rest.smtp_tls,
+      rate_per_minute: rest.rate_per_minute,
+      hourly_cap: rest.hourly_cap,
+      daily_cap: rest.daily_cap,
+      reply_to: rest.reply_to?.trim() || null,
+      smtp_username: rest.smtp_username.trim() || rest.email.trim(),
+      email: rest.email.trim().toLowerCase(),
+    }
     const { error } = id ? await supabase.from('sender_accounts').update(payload).eq('id', id) : await supabase.from('sender_accounts').insert(payload)
     setBusy(null)
     if (error) return setMsg({ tone: 'error', text: error.code === '23514' ? 'Skontrolujte formát adries a limity.' : dbError(error) })
